@@ -6,4 +6,5 @@ setup(
     packages=find_packages(),
     license='MIT',
     long_description=open('README.txt').read(),
+    python_requires='>3.5.2',
 )
