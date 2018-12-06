@@ -1,12 +1,13 @@
 # Russian Parser
 
-This is a basic parser for Russian language texts to tokenize and identify russian words for later analysis.
+This is a basic parser for Russian language texts. 
 
 **Key features:**
 
-- Parsing preserves accent marks, white space, and punctuation from the input.
+- Tokenizes the text into russian words and non-russian words.
 - Normalizes unicode characters in NFKD form so that output is consistent.
-- Groups tokens together into Word objects for hyphenated words and multi-word expressions.
+- Parses the tokens into words, preserving accent marks, white space, and punctuation from the input text.
+- Handles hyphenated words and multi-word expressions.
 
 ## Usage
 
