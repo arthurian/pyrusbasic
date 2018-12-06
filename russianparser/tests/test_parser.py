@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import unittest
-
-from russianparser.parser import RussianParser, RussianTokenizer, RussianWord
+import russianparser
 
 class TestWord(unittest.TestCase):
     def test_accents(self):
@@ -10,7 +9,7 @@ class TestWord(unittest.TestCase):
             ['лягу́шка-кваку́шка', 'лягушка-квакушка'],
         ]
         for (accented, unaccented) in tests:
-            word = RussianWord(accented)
+            word = russianparser.Word(accented)
             self.assertEqual(word.gettext(), accented)
             self.assertEqual(str(word), accented)
             self.assertEqual(word.gettext(remove_accents=True), unaccented)
@@ -19,14 +18,14 @@ class TestWord(unittest.TestCase):
 
 class TestTokenizer(unittest.TestCase):
     def test_tokenizer_unaccented(self):
-        tokenizer = RussianTokenizer()
+        tokenizer = russianparser.Tokenizer()
         text = 'Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему.\n\n'
         expected_tokens = ['Все', ' ', 'счастливые', ' ', 'семьи', ' ', 'похожи', ' ', 'друг', ' ', 'на', ' ', 'друга', ', ', 'каждая', ' ', 'несчастливая', ' ', 'семья', ' ', 'несчастлива', ' ', 'по', '-', 'своему', '.\n\n']
         actual_tokens = tokenizer.tokenize(text)
         self.assertEqual(actual_tokens, expected_tokens)
 
     def test_tokenizer_accented(self):
-        tokenizer = RussianTokenizer()
+        tokenizer = russianparser.Tokenizer()
         text = 'Жила́-была́ на све́те лягу́шка-кваку́шка.'
         expected_tokens = ['Жила́', '-', 'была́', ' ', 'на', ' ', 'све́те', ' ', 'лягу́шка', '-', 'кваку́шка', '.']
         actual_tokens = tokenizer.tokenize(text)
@@ -34,7 +33,7 @@ class TestTokenizer(unittest.TestCase):
 
 class TestParser(unittest.TestCase):
     def test_parse_accented_and_hyphenated(self):
-        parser = RussianParser()
+        parser = russianparser.Parser()
         text = "све́те лягу́шка-кваку́шка.\n"
         words = parser.parse(text)
         self.assertEqual(words[0].gettext(), 'све́те')
@@ -44,7 +43,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(words[3].gettext(), ".\n")
 
     def test_hyphenated(self):
-        parser = RussianParser()
+        parser = russianparser.Parser()
         hyphenated = [
             'всё-таки',
             'из-за',
@@ -59,24 +58,44 @@ class TestParser(unittest.TestCase):
             self.assertEqual(words[0].gettext(), hyphenated_word)
             self.assertEqual(len(words[0].tokens), 3)
 
-    def test_mwes(self):
-        parser = RussianParser()
+    def test_default_mwes(self):
+        parser = russianparser.Parser()
+        parser.add_mwes(russianparser.MULTI_WORD_EXPRESSIONS)
         tests = [{
-            'text': 'Он любил ее не потому, что она обладала неземной красотой.',
-            'expected': ['Он', ' ', 'любил', ' ', 'ее', ' ', 'не', ' ', 'потому, что', ' ', 'она', ' ', 'обладала', ' ', 'неземной', ' ', 'красотой', '.'],
+            'input': 'Он любил ее не потому, что она обладала неземной красотой.',
+            'output': ['Он', ' ', 'любил', ' ', 'ее', ' ', 'не', ' ', 'потому, что', ' ', 'она', ' ', 'обладала', ' ', 'неземной', ' ', 'красотой', '.'],
+            'description': 'MWE in the middle of the sentence: потому, что'
         },{
-            'text': 'Мы шли долго, но не устали, несмотря на то, что погода не благоприятствовала прогулке.',
-            'expected': ['Мы', ' ', 'шли', ' ', 'долго', ', ', 'но', ' ', 'не', ' ', 'устали', ', ', 'несмотря на то, что', ' ', 'погода', ' ', 'не', ' ', 'благоприятствовала', ' ', 'прогулке', '.'],
+            'input': 'Мы шли долго, но не устали, несмотря на то, что погода не благоприятствовала прогулке.',
+            'output': ['Мы', ' ', 'шли', ' ', 'долго', ', ', 'но', ' ', 'не', ' ', 'устали', ', ', 'несмотря на то, что', ' ', 'погода', ' ', 'не', ' ', 'благоприятствовала', ' ', 'прогулке', '.'],
+            'description': 'MWE in the middle of the sentence: несмотря на то, что',
         },{
-            'text': 'до того как союз.',
-            'expected': ['до того как', ' ', 'союз', '.'],
+            'input': 'Несмотря на то, что чья-то карета...',
+            'output': ['Несмотря на то, что', ' ', 'чья-то', ' ', 'карета', '...'],
+            'description': 'MWE at the beginning of the sentence (capitalized first letter)',
+        },{
+            'input': 'до того как союз.',
+            'output': ['до того как', ' ', 'союз', '.'],
+            'description': 'MWE at the beginning of a phrase, not capitalized',
         }]
         for test in tests:
-            text = test['text']
-            expected = test['expected']
+            text = test['input']
+            expected = test['output']
             words = parser.parse(text)
             for i, word in enumerate(words):
-                self.assertEqual(word.gettext(), expected[i])
+                self.assertEqual(word.gettext(), expected[i], test['description'])
+
+    def test_add_mwe(self):
+        parser = russianparser.Parser()
+        parser.add_mwe('Несмотря на то, что')
+        parser.add_mwe('еще не много')
+        text = 'Несмотря на то, что еще не много времени прошло с тех пор, как князь Андрей оставил Россию, он много изменился за это время.'
+        words = parser.parse(text)
+        self.assertEqual(words[0].gettext(), 'Несмотря на то, что')
+        self.assertEqual(words[1].gettext(), ' ')
+        self.assertEqual(words[2].gettext(), 'еще не много')
+        self.assertEqual(words[3].gettext(), ' ')
+        self.assertEqual(words[4].gettext(), 'времени')
 
 if __name__ == '__main__':
     unittest.main()

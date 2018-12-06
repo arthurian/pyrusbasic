@@ -1,23 +1,40 @@
 # Russian Parser
 
-This is a basic parser for Russian language texts.
+This is a basic parser for Russian language texts to tokenize and identify russian words for later analysis.
+
+**Key features:**
+
+- Parsing preserves accent marks, white space, and punctuation from the input.
+- Normalizes unicode characters in NFKD form so that output is consistent.
+- Groups tokens together into Word objects for hyphenated words and multi-word expressions.
 
 ## Usage
 
+Install via pip:
+
 ```sh
-$ pip install 
-
+$ pip install git+https://github.com/arthurian/russianparser.git#egg=russianparser
 ```
 
-```python
-from russianparser.parser import RussianParser
-parser = RussianParser()
-text = 'Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему.'
-parser.parse(text)
+Basic example:
+
+```
+import russianparser
+parser = russianparser.Parser()
+words = parser.parse('Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему.')
+print([str(w) for w in words])
+
+['Все', ' ', 'счастливые', ' ', 'семьи', ' ', 'похожи', ' ', 'друг', ' ', 'на', ' ', 'друга', ', ', 'каждая', ' ', 'несчастливая', ' ', 'семья', ' ', 'несчастлива', ' ', 'по-своему', '.']
 ```
 
-Output:
+Example with multi-word expressions:
 
-```text
-[[1, 'Все'], [5, ' '], [1, 'счастливые'], [5, ' '], [1, 'семьи'], [5, ' '], [1, 'похожи'], [5, ' '], [1, 'друг'], [5, ' '], [1, 'на'], [5, ' '], [1, 'друга'], [4, ', '], [1, 'каждая'], [5, ' '], [1, 'несчастливая'], [5, ' '], [1, 'семья'], [5, ' '], [1, 'несчастлива'], [5, ' '], [2, 'по', '-', 'своему'], [4, '.']]
 ```
+import russianparser
+parser = russianparser.Parser()
+parser.add_mwe('Несмотря на то, что')
+parser.add_mwe('еще не много')
+words = parser.parse('Несмотря на то, что еще не много времени прошло с тех пор, как князь Андрей оставил Россию, он много изменился за это время.')
+print([str(w) for w in words])
+
+['Несмотря на то, что', ' ', 'еще не много', ' ', 'времени', ' ', 'прошло', ' ', 'с', ' ', 'тех', ' ', 'пор', ', ', 'как', ' ', 'князь', ' ', 'Андрей', ' ', 'оставил', ' ', 'Россию', ', ', 'он', ' ', 'много', ' ', 'изменился', ' ', 'за', ' ', 'это', ' ', 'время', '.']```

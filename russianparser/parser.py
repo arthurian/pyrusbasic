@@ -50,10 +50,10 @@ COMBINING_DIURESIS_CHAR = '\u0308' # E.g. cyrillic e with diuresis
 EN_DASH_CHAR = '\u2013'
 HYPHEN_CHAR = '\u002D'
 
-DEFAULT_MWES = [
+MULTI_WORD_EXPRESSIONS = [
     'потому, что',
     ', потому что',
-    'Потому что',
+    'потому что',
     'несмотря на то, что',
     'несмотря на',
     'после того как',
@@ -69,14 +69,16 @@ RE_WHITESPACE_ONLY = re.compile(r'^\s+$')
 
 TRANSLATOR_PUNCT_REMOVE = str.maketrans('', '', string.punctuation)
 
-class RussianWord(object):
+class Word(object):
+    TYPE_NONE = 0
     TYPE_WORD = 1
     TYPE_HYPHENATED_WORD = 2
     TYPE_MWE = 3
     TYPE_WHITESPACE = 5
     TYPE_OTHER = 4
+    VALID_TYPES = (TYPE_NONE, TYPE_WORD, TYPE_HYPHENATED_WORD, TYPE_MWE, TYPE_WHITESPACE, TYPE_OTHER)
 
-    def __init__(self, tokens, word_type=None):
+    def __init__(self, tokens, word_type=TYPE_NONE):
         if isinstance(tokens, str):
             tokens = [tokens]
         self.tokens = tokens
@@ -105,13 +107,13 @@ class RussianWord(object):
     def __str__(self):
         return self.gettext()
 
-class RussianPreprocessor(object):
+class Preprocessor(object):
     def preprocess(self, text):
         text = text.replace(EN_DASH_CHAR, HYPHEN_CHAR)
         nfkd_form = unicodedata.normalize('NFKD', text)
         return nfkd_form
 
-class RussianTokenizer(object):
+class Tokenizer(object):
     def tokenize(self, text):
         # First pass at splitting text into groups of russian characters, including accents, and then all others.
         # Assumes normalized in NFKD form.
@@ -122,19 +124,22 @@ class RussianTokenizer(object):
         tokens = [t for t in tokens if t != '']
         return tokens
 
-class RussianParser(object):
-    def __init__(self, mwes=DEFAULT_MWES):
-        self._mwes = pygtrie.Trie.fromkeys(mwes)
+class Parser(object):
+    def __init__(self):
+        self._mwes = pygtrie.Trie()
 
-    def add_mwes(self, multi_word_exprs):
-        for mwe in multi_word_exprs:
-            self._mwes[mwe] = True
+    def add_mwe(self, mwe):
+        self._mwes[mwe.lower()] = True
+
+    def add_mwes(self, mwes):
+        for mwe in mwes:
+            self._mwes[mwe.lower()] = True
 
     def preprocess(self, text):
-        return RussianPreprocessor().preprocess(text)
+        return Preprocessor().preprocess(text)
 
     def tokenize(self, text):
-        return RussianTokenizer().tokenize(text)
+        return Tokenizer().tokenize(text)
 
     def identifywords(self, tokens):
         queue = collections.deque(tokens)
@@ -143,17 +148,17 @@ class RussianParser(object):
 
         while len(queue) > 0:
             token = queue.popleft()
-            word_type = RussianWord.TYPE_OTHER
+            word_type = Word.TYPE_OTHER
             word_tokens.append(token)
 
             if token[0] in RUS_ALPHABET_SET:
-                word_type = RussianWord.TYPE_WORD
+                word_type = Word.TYPE_WORD
 
                 # Look ahead for hyphenated words or multi-word expressions
                 if len(queue) > 0:
                     if queue[0] == HYPHEN_CHAR:
                         # Look for hyphenated words
-                        word_type = RussianWord.TYPE_HYPHENATED_WORD
+                        word_type = Word.TYPE_HYPHENATED_WORD
                         word_tokens.append(queue.popleft())
                         if queue[0][0] in RUS_ALPHABET_SET:
                             word_tokens.append(queue.popleft())
@@ -164,20 +169,21 @@ class RussianParser(object):
                         j = 0
                         while j < len(queue):
                             lookahead.append(queue[j])
-                            expr = "".join(lookahead)
+                            expr = Word(tokens=lookahead).gettext(remove_accents=True)
+                            expr = expr.lower()
                             if self._mwes.has_subtrie(expr):
                                 j += 1
                                 continue
                             elif self._mwes.has_key(expr):
+                                word_type = Word.TYPE_MWE
                                 for i in range(startpos, len(lookahead)):
                                     word_tokens.append(queue.popleft())
-                                    word_type = RussianWord.TYPE_MWE
                             else:
                                 break
             elif RE_WHITESPACE_ONLY.match(token):
-                word_type = RussianWord.TYPE_WHITESPACE
+                word_type = Word.TYPE_WHITESPACE
 
-            word = RussianWord(word_tokens, word_type=word_type)
+            word = Word(word_tokens, word_type=word_type)
             words.append(word)
             word_tokens = []
 
