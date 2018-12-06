@@ -1,7 +1,21 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-from russianparser.parser import RussianParser, RussianTokenizer
+from russianparser.parser import RussianParser, RussianTokenizer, RussianWord
+
+class TestWord(unittest.TestCase):
+    def test_accents(self):
+        tests = [
+            ['све́те', 'свете'],
+            ['лягу́шка-кваку́шка', 'лягушка-квакушка'],
+        ]
+        for (accented, unaccented) in tests:
+            word = RussianWord(accented)
+            self.assertEqual(word.gettext(), accented)
+            self.assertEqual(str(word), accented)
+            self.assertEqual(word.gettext(remove_accents=True), unaccented)
+            self.assertEqual(word.canonical(), unaccented)
+            self.assertEqual(word.numtokens(), 1)
 
 class TestTokenizer(unittest.TestCase):
     def test_tokenizer_unaccented(self):
@@ -24,11 +38,9 @@ class TestParser(unittest.TestCase):
         text = "све́те лягу́шка-кваку́шка.\n"
         words = parser.parse(text)
         self.assertEqual(words[0].gettext(), 'све́те')
-        self.assertEqual(words[0].gettext(remove_accents=True), 'свете')
         self.assertEqual(words[1].gettext(), ' ')
         self.assertEqual(words[2].gettext(), 'лягу́шка-кваку́шка')
-        self.assertEqual(words[2].gettext(remove_accents=True), 'лягушка-квакушка')
-        self.assertEqual(len(words[2].tokens), 3)
+        self.assertEqual(words[2].numtokens(), 3)
         self.assertEqual(words[3].gettext(), ".\n")
 
     def test_hyphenated(self):

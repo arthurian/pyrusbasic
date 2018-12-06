@@ -76,22 +76,25 @@ class RussianWord(object):
     TYPE_WHITESPACE = 5
     TYPE_OTHER = 4
 
-    def __init__(self, tokens=None, word_type=None):
-        self.tokens = []
-        self.word_type = None
-
-        if tokens is not None:
-            self.tokens.extend(tokens)
-        if word_type is not None:
-            self.word_type = word_type
+    def __init__(self, tokens, word_type=None):
+        if isinstance(tokens, str):
+            tokens = [tokens]
+        self.tokens = tokens
+        self.word_type = word_type
 
     def gettext(self, remove_accents=False, remove_punct=False):
-        text = "".join(self.tokens)
+        text = ''.join(self.tokens)
         if remove_accents:
             text = text.replace(COMBINING_ACCENT_CHAR, '')
         if remove_punct:
             text = text.translate(TRANSLATOR_PUNCT_REMOVE)
         return text
+
+    def canonical(self):
+        return self.gettext(remove_accents=True)
+
+    def numtokens(self):
+        return len(self.tokens)
 
     def getdata(self):
         return [self.word_type] + self.tokens
@@ -120,8 +123,8 @@ class RussianTokenizer(object):
         return tokens
 
 class RussianParser(object):
-    def __init__(self):
-        self._mwes = pygtrie.Trie.fromkeys(DEFAULT_MWES)
+    def __init__(self, mwes=DEFAULT_MWES):
+        self._mwes = pygtrie.Trie.fromkeys(mwes)
 
     def add_mwes(self, multi_word_exprs):
         for mwe in multi_word_exprs:
@@ -156,7 +159,8 @@ class RussianParser(object):
                             word_tokens.append(queue.popleft())
                     else:
                         #  Look for multi-word expressions
-                        lookahead = [token]
+                        lookahead = word_tokens.copy()
+                        startpos = len(lookahead)
                         j = 0
                         while j < len(queue):
                             lookahead.append(queue[j])
@@ -165,7 +169,7 @@ class RussianParser(object):
                                 j += 1
                                 continue
                             elif self._mwes.has_key(expr):
-                                for i in range(1, len(lookahead)):
+                                for i in range(startpos, len(lookahead)):
                                     word_tokens.append(queue.popleft())
                                     word_type = RussianWord.TYPE_MWE
                             else:
