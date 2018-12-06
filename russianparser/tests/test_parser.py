@@ -31,6 +31,22 @@ class TestParser(unittest.TestCase):
         self.assertEqual(len(words[2].tokens), 3)
         self.assertEqual(words[3].gettext(), ".\n")
 
+    def test_hyphenated(self):
+        parser = RussianParser()
+        hyphenated = [
+            'всё-таки',
+            'из-за',
+            'из-под',
+            'по-своему',
+            'по-твоему',
+            'по-английски',
+            'по-русски',
+        ]
+        for hyphenated_word in hyphenated:
+            words = parser.parse(hyphenated_word)
+            self.assertEqual(words[0].gettext(), hyphenated_word)
+            self.assertEqual(len(words[0].tokens), 3)
+
     def test_mwes(self):
         parser = RussianParser()
         tests = [{

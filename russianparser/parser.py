@@ -45,6 +45,7 @@ RUS_ALPHABET_STR = "".join(RUS_ALPHABET_LIST)
 
 COMBINING_ACCENT_CHAR = '\u0301' # E.g. for stress marks
 COMBINING_BREVE_CHAR = '\u0306' # E.g. for eleventh letter in Russian alphabet, short i
+COMBINING_DIURESIS_CHAR = '\u0308' # E.g. cyrillic e with diuresis
 
 EN_DASH_CHAR = '\u2013'
 HYPHEN_CHAR = '\u002D'
@@ -110,8 +111,10 @@ class RussianPreprocessor(object):
 class RussianTokenizer(object):
     def tokenize(self, text):
         # First pass at splitting text into groups of russian characters, including accents, and then all others.
+        # Assumes normalized in NFKD form.
         # Note the intention is to preserve upper/lower case characters and all whitespace, punctuation, etc
-        pattern = "([^" + RUS_ALPHABET_STR + COMBINING_ACCENT_CHAR + COMBINING_BREVE_CHAR + "]+)"
+        COMBINING_CHARS = COMBINING_ACCENT_CHAR + COMBINING_BREVE_CHAR + COMBINING_DIURESIS_CHAR
+        pattern = "([^" + RUS_ALPHABET_STR + COMBINING_CHARS + "]+)"
         tokens = re.split(pattern, text)
         tokens = [t for t in tokens if t != '']
         return tokens
