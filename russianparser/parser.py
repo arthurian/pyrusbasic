@@ -50,9 +50,18 @@ EN_DASH_CHAR = '\u2013'
 HYPHEN_CHAR = '\u002D'
 
 DEFAULT_MWES = [
-    'потому что',
     'потому, что',
-    ',потому что',
+    ', потому что',
+    'Потому что',
+    'несмотря на то, что',
+    'несмотря на',
+    'после того как',
+    'после того, как',
+    'до того как',
+    'до того, как',
+    'перед тем как',
+    'перед тем, как',
+    'в течение',
 ]
 
 RE_WHITESPACE_ONLY = re.compile(r'^\s+$')
@@ -104,12 +113,12 @@ class RussianTokenizer(object):
         # Note the intention is to preserve upper/lower case characters and all whitespace, punctuation, etc
         pattern = "([^" + RUS_ALPHABET_STR + COMBINING_ACCENT_CHAR + COMBINING_BREVE_CHAR + "]+)"
         tokens = re.split(pattern, text)
+        tokens = [t for t in tokens if t != '']
         return tokens
 
 class RussianParser(object):
     def __init__(self):
-        self._mwes = pygtrie.Trie()
-        self.add_mwes(DEFAULT_MWES)
+        self._mwes = pygtrie.Trie.fromkeys(DEFAULT_MWES)
 
     def add_mwes(self, multi_word_exprs):
         for mwe in multi_word_exprs:
@@ -128,10 +137,6 @@ class RussianParser(object):
 
         while len(queue) > 0:
             token = queue.popleft()
-            # Skip empty tokens
-            if len(token) == 0:
-                continue
-
             word_type = RussianWord.TYPE_OTHER
             word_tokens.append(token)
 
@@ -148,18 +153,18 @@ class RussianParser(object):
                             word_tokens.append(queue.popleft())
                     else:
                         #  Look for multi-word expressions
-                        lookahead = word_tokens.copy()
+                        lookahead = [token]
                         j = 0
                         while j < len(queue):
                             lookahead.append(queue[j])
                             expr = "".join(lookahead)
-                            if self._mwes.has_key(expr):
+                            if self._mwes.has_subtrie(expr):
+                                j += 1
+                                continue
+                            elif self._mwes.has_key(expr):
                                 for i in range(1, len(lookahead)):
                                     word_tokens.append(queue.popleft())
                                     word_type = RussianWord.TYPE_MWE
-                            elif self._mwes.has_subtrie(expr):
-                                j += 1
-                                continue
                             else:
                                 break
             elif RE_WHITESPACE_ONLY.match(token):
