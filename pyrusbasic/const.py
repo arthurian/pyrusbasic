@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Pairs of upper and lowercase cyrillic letters in the russian alphabet
 RUS_ALPHABET_LIST = (
     '\u0410', '\u0430', # Аа
