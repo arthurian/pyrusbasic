@@ -19,14 +19,13 @@ RE_WHITESPACE_ONLY = re.compile(r'^\s+$')
 TRANSLATOR_PUNCT_REMOVE = str.maketrans('', '', string.punctuation)
 
 class Word(object):
-    TYPE_NONE = 0
     TYPE_WORD = 1
     TYPE_HYPHENATED_WORD = 2
     TYPE_MWE = 3
-    TYPE_WHITESPACE = 5
-    TYPE_OTHER = 4
+    TYPE_WHITESPACE = 4
+    TYPE_OTHER = 5
 
-    def __init__(self, tokens=None, word_type=TYPE_NONE):
+    def __init__(self, tokens=None, word_type=None):
         if tokens is None:
             self.tokens = []
         elif isinstance(tokens, str):
@@ -103,8 +102,7 @@ class Parser(object):
         while len(tokenqueue) > 0:
             # Initialize word object with first token from the queue
             token = tokenqueue.popleft()
-            word = Word(tokens=token, word_type=Word.TYPE_OTHER)
-            words.append(word)
+            word = Word(tokens=token)
 
             # Assume the word is russian if the first letter is russian based on the tokenization method
             if token[0] in RUS_ALPHABET_SET:
@@ -121,6 +119,7 @@ class Parser(object):
             elif RE_WHITESPACE_ONLY.match(token):
                 word.type = Word.TYPE_WHITESPACE
 
+            words.append(word)
         return words
 
     def find_mwe(self, tokenqueue, word):
