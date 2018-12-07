@@ -14,14 +14,14 @@ This is a basic parser for Russian language texts.
 Install via pip:
 
 ```sh
-$ pip install git+https://github.com/arthurian/russianparser.git#egg=russianparser
+$ pip install git+https://github.com/arthurian/pyrusbasic.git#egg=pyrusbasic
 ```
 
 Basic example:
 
 ```
-import russianparser
-parser = russianparser.Parser()
+import pyrusbasic
+parser = pyrusbasic.Parser()
 words = parser.parse('Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему.')
 print([str(w) for w in words])
 
@@ -31,8 +31,8 @@ print([str(w) for w in words])
 Example with multi-word expressions:
 
 ```
-import russianparser
-parser = russianparser.Parser()
+import pyrusbasic
+parser = pyrusbasic.Parser()
 parser.add_mwe('Несмотря на то, что')
 parser.add_mwe('еще не много')
 words = parser.parse('Несмотря на то, что еще не много времени прошло с тех пор, как князь Андрей оставил Россию, он много изменился за это время.')
