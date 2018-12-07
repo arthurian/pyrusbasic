@@ -35,12 +35,14 @@ class Word(object):
             self.tokens = tokens
         self.word_type = word_type
 
-    def gettext(self, remove_accents=False, remove_punct=False):
+    def gettext(self, remove_accents=False, remove_punct=False, lowercase=False):
         text = ''.join(self.tokens)
         if remove_accents:
             text = text.replace(COMBINING_ACCENT_CHAR, '')
         if remove_punct:
             text = text.translate(TRANSLATOR_PUNCT_REMOVE)
+        if lowercase:
+            text = text.lower()
         return text
 
     def canonical(self):
@@ -76,15 +78,18 @@ class Tokenizer(object):
         return tokens
 
 class Parser(object):
-    def __init__(self):
+    def __init__(self, **kwargs):
         self._mwes = pygtrie.Trie()
+        self.match_case = kwargs.get('match_case', True)
 
     def add_mwe(self, mwe):
-        self._mwes[mwe.lower()] = True
+        if self.match_case:
+            mwe = mwe.lower()
+        self._mwes[mwe] = True
 
     def add_mwes(self, mwes):
         for mwe in mwes:
-            self._mwes[mwe.lower()] = True
+            self.add_mwe(mwe)
 
     def preprocess(self, text):
         return Preprocessor().preprocess(text)
@@ -124,8 +129,7 @@ class Parser(object):
         j = 0
         while j < len(tokenqueue):
             tokenstack.append(tokenqueue[j])
-            expr = Word(tokenstack).gettext(remove_accents=True)
-            expr = expr.lower()
+            expr = Word(tokenstack).gettext(remove_accents=True, lowercase=self.match_case)
             if self._mwes.has_subtrie(expr):
                 j += 1
                 continue
