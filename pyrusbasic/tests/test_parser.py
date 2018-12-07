@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import unittest
-import pyrusbasic
+import pyrusbasic.const
 
 class TestWord(unittest.TestCase):
     def test_accents(self):
@@ -60,7 +60,7 @@ class TestParser(unittest.TestCase):
 
     def test_default_mwes(self):
         parser = pyrusbasic.Parser()
-        parser.add_mwes(pyrusbasic.MULTI_WORD_EXPRESSIONS)
+        parser.add_mwes(pyrusbasic.const.COMMON_MWES)
         tests = [{
             'input': 'Он любил ее не потому, что она обладала неземной красотой.',
             'output': ['Он', ' ', 'любил', ' ', 'ее', ' ', 'не', ' ', 'потому, что', ' ', 'она', ' ', 'обладала', ' ', 'неземной', ' ', 'красотой', '.'],

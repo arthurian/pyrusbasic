@@ -5,68 +5,17 @@ import unicodedata
 import collections
 import pygtrie
 
-RUS_ALPHABET_LIST = [
-    '\u0410', '\u0430', # Аа
-    '\u0411', '\u0431', # Бб
-    '\u0412', '\u0432', # Вв
-    '\u0413', '\u0433', # Гг
-    '\u0414', '\u0434', # Дд
-    '\u0415', '\u0435', # Ее
-    '\u0401', '\u0451', # Ёё
-    '\u0416', '\u0436', # Жж
-    '\u0417', '\u0437', # Зз
-    '\u0418', '\u0438', # Ии
-    '\u0419', '\u0439', # Йй
-    '\u041A', '\u043A', # Кк
-    '\u041B', '\u043B', # Лл
-    '\u041C', '\u043C', # Мм
-    '\u041D', '\u043D', # Нн
-    '\u041E', '\u043E', # Оо
-    '\u041F', '\u043F', # Пп
-    '\u0420', '\u0440', # Рр
-    '\u0421', '\u0441', # Сс
-    '\u0422', '\u0442', # Тт
-    '\u0423', '\u0443', # Уу
-    '\u0424', '\u0444', # Фф
-    '\u0425', '\u0445', # Хх
-    '\u0426', '\u0446', # Цц
-    '\u0427', '\u0447', # Чч
-    '\u0428', '\u0448', # Шш
-    '\u0429', '\u0449', # Щщ
-    '\u042A', '\u044A', # Ъъ
-    '\u042B', '\u044B', # Ыы
-    '\u042C', '\u044C', # Ьь
-    '\u042D', '\u044D', # Ээ
-    '\u042E', '\u044E', # Юю
-    '\u042F', '\u044F', # Яя
-]
-RUS_ALPHABET_SET = set(RUS_ALPHABET_LIST)
-RUS_ALPHABET_STR = "".join(RUS_ALPHABET_LIST)
-
-COMBINING_ACCENT_CHAR = '\u0301' # E.g. for stress marks
-COMBINING_BREVE_CHAR = '\u0306' # E.g. for eleventh letter in Russian alphabet, short i
-COMBINING_DIURESIS_CHAR = '\u0308' # E.g. cyrillic e with diuresis
-
-EN_DASH_CHAR = '\u2013'
-HYPHEN_CHAR = '\u002D'
-
-MULTI_WORD_EXPRESSIONS = [
-    'потому, что',
-    ', потому что',
-    'потому что',
-    'несмотря на то, что',
-    'несмотря на',
-    'после того как',
-    'после того, как',
-    'до того как',
-    'до того, как',
-    'перед тем как',
-    'перед тем, как',
-    'в течение',
-]
+from pyrusbasic.const import (
+    RUS_ALPHABET_STR,
+    RUS_ALPHABET_SET,
+    COMBINING_ACCENT_CHAR,
+    COMBINING_BREVE_CHAR,
+    COMBINING_DIURESIS_CHAR,
+    EN_DASH_CHAR,
+    HYPHEN_CHAR
+)
 
 RE_WHITESPACE_ONLY = re.compile(r'^\s+$')
-
 TRANSLATOR_PUNCT_REMOVE = str.maketrans('', '', string.punctuation)
 
 class Word(object):
@@ -76,12 +25,14 @@ class Word(object):
     TYPE_MWE = 3
     TYPE_WHITESPACE = 5
     TYPE_OTHER = 4
-    VALID_TYPES = (TYPE_NONE, TYPE_WORD, TYPE_HYPHENATED_WORD, TYPE_MWE, TYPE_WHITESPACE, TYPE_OTHER)
 
-    def __init__(self, tokens, word_type=TYPE_NONE):
-        if isinstance(tokens, str):
-            tokens = [tokens]
-        self.tokens = tokens
+    def __init__(self, tokens=None, word_type=TYPE_NONE):
+        if tokens is None:
+            self.tokens = []
+        elif isinstance(tokens, str):
+            self.tokens = [tokens]
+        else:
+            self.tokens = tokens
         self.word_type = word_type
 
     def gettext(self, remove_accents=False, remove_punct=False):
@@ -141,56 +92,54 @@ class Parser(object):
     def tokenize(self, text):
         return Tokenizer().tokenize(text)
 
-    def identifywords(self, tokens):
-        queue = collections.deque(tokens)
-        word_tokens = []
+    def tokens2words(self, tokens):
+        tokenqueue = collections.deque(tokens)
         words = []
-
-        while len(queue) > 0:
-            token = queue.popleft()
-            word_type = Word.TYPE_OTHER
-            word_tokens.append(token)
-
-            if token[0] in RUS_ALPHABET_SET:
-                word_type = Word.TYPE_WORD
-
-                # Look ahead for hyphenated words or multi-word expressions
-                if len(queue) > 0:
-                    if queue[0] == HYPHEN_CHAR:
-                        # Look for hyphenated words
-                        word_type = Word.TYPE_HYPHENATED_WORD
-                        word_tokens.append(queue.popleft())
-                        if queue[0][0] in RUS_ALPHABET_SET:
-                            word_tokens.append(queue.popleft())
-                    else:
-                        #  Look for multi-word expressions
-                        lookahead = word_tokens.copy()
-                        startpos = len(lookahead)
-                        j = 0
-                        while j < len(queue):
-                            lookahead.append(queue[j])
-                            expr = Word(tokens=lookahead).gettext(remove_accents=True)
-                            expr = expr.lower()
-                            if self._mwes.has_subtrie(expr):
-                                j += 1
-                                continue
-                            elif self._mwes.has_key(expr):
-                                word_type = Word.TYPE_MWE
-                                for i in range(startpos, len(lookahead)):
-                                    word_tokens.append(queue.popleft())
-                            else:
-                                break
-            elif RE_WHITESPACE_ONLY.match(token):
-                word_type = Word.TYPE_WHITESPACE
-
-            word = Word(word_tokens, word_type=word_type)
+        while len(tokenqueue) > 0:
+            # Initialize word object with first token from the queue
+            token = tokenqueue.popleft()
+            word = Word(tokens=token, word_type=Word.TYPE_OTHER)
             words.append(word)
-            word_tokens = []
+
+            # Assume the word is russian if the first letter is russian based on the tokenization method
+            if token[0] in RUS_ALPHABET_SET:
+                word.word_type = Word.TYPE_WORD
+                # Look ahead for hyphenated words or multi-word expressions
+                if len(tokenqueue) > 0:
+                    if tokenqueue[0] == HYPHEN_CHAR:
+                        word.type = Word.TYPE_HYPHENATED_WORD
+                        word.tokens.append(tokenqueue.popleft())
+                        if tokenqueue[0][0] in RUS_ALPHABET_SET:
+                            word.tokens.append(tokenqueue.popleft())
+                    else:
+                        self.find_mwe(tokenqueue, word)
+            elif RE_WHITESPACE_ONLY.match(token):
+                word.type = Word.TYPE_WHITESPACE
 
         return words
+
+    def find_mwe(self, tokenqueue, word):
+        tokenstack = word.tokens.copy()
+        startpos = len(tokenstack)
+        j = 0
+        while j < len(tokenqueue):
+            tokenstack.append(tokenqueue[j])
+            expr = Word(tokenstack).gettext(remove_accents=True)
+            expr = expr.lower()
+            if self._mwes.has_subtrie(expr):
+                j += 1
+                continue
+            elif self._mwes.has_key(expr):
+                word.word_type = Word.TYPE_MWE
+                for i in range(startpos, len(tokenstack)):
+                    word.tokens.append(tokenqueue.popleft())
+                return True
+            else:
+                break
+        return False
 
     def parse(self, text):
         nfkd_text = self.preprocess(text)
         tokens = self.tokenize(nfkd_text)
-        words = self.identifywords(tokens)
+        words = self.tokens2words(tokens)
         return words
