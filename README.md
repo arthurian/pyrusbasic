@@ -1,13 +1,13 @@
-# Russian Parser
+# PyRusBasic
 
-This is a basic parser for Russian language texts. 
+Python package that provides basic tokenization and parsing of Russian language texts. 
 
-**Key features:**
+**Functionality:**
 
-- Tokenizes the text into russian words and non-russian words.
-- Normalizes unicode characters in NFKD form so that output is consistent.
-- Parses the tokens into words, preserving accent marks, white space, and punctuation from the input text.
-- Handles hyphenated words and multi-word expressions.
+- Splits input text into russian words and non-russian words.
+- Normalizes input text into NFKD form for consistent parsing and output.
+- Preserves accent marks, punctuation, and white space from the input text so that it can be recreated if necessary.
+- Converts tokens into `Word` objects, identifying hyphenated words and multi-word expressions for later analysis.
 
 ## Usage
 
@@ -17,12 +17,13 @@ Install via pip:
 $ pip install git+https://github.com/arthurian/pyrusbasic.git#egg=pyrusbasic
 ```
 
-Basic example:
+Example:
 
 ```python
 import pyrusbasic
 parser = pyrusbasic.Parser()
-words = parser.parse('Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему.')
+text = 'Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему.'
+words = parser.parse(text)
 print([str(w) for w in words])
 
 ['Все', ' ', 'счастливые', ' ', 'семьи', ' ', 'похожи', ' ', 'друг', ' ', 'на', ' ', 'друга', ', ', 'каждая', ' ', 'несчастливая', ' ', 'семья', ' ', 'несчастлива', ' ', 'по-своему', '.']
@@ -35,7 +36,8 @@ import pyrusbasic
 parser = pyrusbasic.Parser()
 parser.add_mwe('Несмотря на то, что')
 parser.add_mwe('еще не много')
-words = parser.parse('Несмотря на то, что еще не много времени прошло с тех пор, как князь Андрей оставил Россию, он много изменился за это время.')
+text = 'Несмотря на то, что еще не много времени прошло с тех пор, как князь Андрей оставил Россию, он много изменился за это время.'
+words = parser.parse(text)
 print([str(w) for w in words])
 
 ['Несмотря на то, что', ' ', 'еще не много', ' ', 'времени', ' ', 'прошло', ' ', 'с', ' ', 'тех', ' ', 'пор', ', ', 'как', ' ', 'князь', ' ', 'Андрей', ' ', 'оставил', ' ', 'Россию', ', ', 'он', ' ', 'много', ' ', 'изменился', ' ', 'за', ' ', 'это', ' ', 'время', '.']```
