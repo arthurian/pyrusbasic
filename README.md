@@ -19,7 +19,7 @@ $ pip install git+https://github.com/arthurian/pyrusbasic.git#egg=pyrusbasic
 
 Basic example:
 
-```
+```python
 import pyrusbasic
 parser = pyrusbasic.Parser()
 words = parser.parse('Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему.')
@@ -30,7 +30,7 @@ print([str(w) for w in words])
 
 Example with multi-word expressions:
 
-```
+```python
 import pyrusbasic
 parser = pyrusbasic.Parser()
 parser.add_mwe('Несмотря на то, что')
