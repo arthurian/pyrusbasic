@@ -34,7 +34,7 @@ class Word(object):
             self.tokens = tokens
         self.word_type = word_type
 
-    def gettext(self, remove_accents=False, remove_punct=False, lowercase=False):
+    def gettext(self, remove_accents=False, remove_punct=False, lowercase=False, stripspace=False):
         text = ''.join(self.tokens)
         if remove_accents:
             text = text.replace(COMBINING_ACCENT_CHAR, '')
@@ -42,10 +42,12 @@ class Word(object):
             text = text.translate(TRANSLATOR_PUNCT_REMOVE)
         if lowercase:
             text = text.lower()
+        if stripspace:
+            text = text.strip()
         return text
 
     def canonical(self):
-        return self.gettext(remove_accents=True)
+        return self.gettext(remove_accents=True, lowercase=True, stripspace=True)
 
     def numtokens(self):
         return len(self.tokens)
