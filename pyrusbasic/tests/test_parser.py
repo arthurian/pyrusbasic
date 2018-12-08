@@ -58,9 +58,14 @@ class TestParser(unittest.TestCase):
             self.assertEqual(words[0].gettext(), hyphenated_word)
             self.assertEqual(len(words[0].tokens), 3)
 
-    def test_default_mwes(self):
+    def test_unique_mwes(self):
         parser = pyrusbasic.Parser()
-        parser.add_mwes(pyrusbasic.const.COMMON_MWES)
+        mwes = [
+            'потому, что',
+            'несмотря на то, что',
+            'до того как',
+        ]
+        parser.add_mwes(mwes)
         tests = [{
             'input': 'Он любил ее не потому, что она обладала неземной красотой.',
             'output': ['Он', ' ', 'любил', ' ', 'ее', ' ', 'не', ' ', 'потому, что', ' ', 'она', ' ', 'обладала', ' ', 'неземной', ' ', 'красотой', '.'],
@@ -79,11 +84,33 @@ class TestParser(unittest.TestCase):
             'description': 'MWE at the beginning of a phrase, not capitalized',
         }]
         for test in tests:
-            text = test['input']
             expected = test['output']
-            words = parser.parse(text)
+            words = parser.parse(test['input'])
             for i, word in enumerate(words):
                 self.assertEqual(word.gettext(), expected[i], test['description'])
+
+    def test_sub_mwes(self):
+        parser = pyrusbasic.Parser()
+        mwes = [
+            'несмотря на',
+            'несмотря на то, что',
+        ]
+        parser.add_mwes(mwes)
+        tests = [{
+            'input': 'Несмотря на серьёзную болезнь...',
+            'output': ['Несмотря на ', 'серьёзную', ' ', 'болезнь', '...'],
+            'description': 'MWE that IS a prefix of another will greedy match up to the space',
+        },{
+            'input': 'возможна, несмотря на то, что фактов',
+            'output': ['возможна', ', ', 'несмотря на то, что', ' ', 'фактов'],
+            'description': 'MWE that is NOT a prefix of another MWE',
+        }]
+        for test in tests:
+            expected = test['output']
+            words = parser.parse(test['input'])
+            for i, word in enumerate(words):
+                self.assertEqual(word.gettext(), expected[i], test['description'])
+
 
     def test_add_mwe(self):
         parser = pyrusbasic.Parser()

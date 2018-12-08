@@ -53,6 +53,9 @@ class Word(object):
     def getdata(self):
         return [self.word_type] + self.tokens
 
+    def copy(self):
+        return Word(tokens=self.tokens.copy(), word_type=self.word_type)
+
     def __repr__(self):
         return str(self.getdata())
 
@@ -79,10 +82,10 @@ class Tokenizer(object):
 class Parser(object):
     def __init__(self, **kwargs):
         self._mwes = pygtrie.Trie()
-        self.match_case = kwargs.get('match_case', True)
+        self.match_case = kwargs.get('match_case', False)
 
     def add_mwe(self, mwe):
-        if self.match_case:
+        if not self.match_case:
             mwe = mwe.lower()
         self._mwes[mwe] = True
 
@@ -123,23 +126,27 @@ class Parser(object):
         return words
 
     def find_mwe(self, tokenqueue, word):
-        tokenstack = word.tokens.copy()
-        startpos = len(tokenstack)
+        w = word.copy()
+        matched = False
         j = 0
         while j < len(tokenqueue):
-            tokenstack.append(tokenqueue[j])
-            expr = Word(tokenstack).gettext(remove_accents=True, lowercase=self.match_case)
+            w.tokens.append(tokenqueue[j])
+            expr = w.gettext(remove_accents=True, lowercase=not self.match_case)
             if self._mwes.has_subtrie(expr):
                 j += 1
+                matched = True
                 continue
             elif self._mwes.has_key(expr):
-                word.word_type = Word.TYPE_MWE
-                for i in range(startpos, len(tokenstack)):
-                    word.tokens.append(tokenqueue.popleft())
-                return True
-            else:
+                matched = True
                 break
-        return False
+            else:
+                j -= 1
+                break
+        if matched:
+            while j >= 0:
+                word.tokens.append(tokenqueue.popleft())
+                j -= 1
+        return matched
 
     def parse(self, text):
         nfkd_text = self.preprocess(text)
