@@ -45,12 +45,12 @@ class TestParser(unittest.TestCase):
     def test_hyphenated(self):
         parser = pyrusbasic.Parser()
         hyphenated = [
-            'всё-таки',
+            'всё-таки',
             'из-за',
             'из-под',
             'по-своему',
             'по-твоему',
-            'по-английски',
+            'по-английски',
             'по-русски',
         ]
         for hyphenated_word in hyphenated:
@@ -68,7 +68,7 @@ class TestParser(unittest.TestCase):
         parser.add_mwes(mwes)
         tests = [{
             'input': 'Он любил ее не потому, что она обладала неземной красотой.',
-            'output': ['Он', ' ', 'любил', ' ', 'ее', ' ', 'не', ' ', 'потому, что', ' ', 'она', ' ', 'обладала', ' ', 'неземной', ' ', 'красотой', '.'],
+            'output': ['Он', ' ', 'любил', ' ', 'ее', ' ', 'не', ' ', 'потому, что', ' ', 'она', ' ', 'обладала', ' ', 'неземной', ' ', 'красотой', '.'],
             'description': 'MWE in the middle of the sentence: потому, что'
         },{
             'input': 'Мы шли долго, но не устали, несмотря на то, что погода не благоприятствовала прогулке.',
@@ -97,8 +97,8 @@ class TestParser(unittest.TestCase):
         ]
         parser.add_mwes(mwes)
         tests = [{
-            'input': 'Несмотря на серьёзную болезнь...',
-            'output': ['Несмотря на ', 'серьёзную', ' ', 'болезнь', '...'],
+            'input': 'Несмотря на серьзёную болезнь...',
+            'output': ['Несмотря на ', 'серьзёную', ' ', 'болезнь', '...'],
             'description': 'MWE that IS a prefix of another will greedy match up to the space',
         },{
             'input': 'возможна, несмотря на то, что фактов',

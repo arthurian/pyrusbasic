@@ -1,13 +1,12 @@
 # PyRusBasic
 
-Python package that provides basic tokenization and parsing of Russian language texts. 
+Python package that provides basic tokenization and parsing of Russian language texts so that individual words and expressions can be analyzed.
 
 **Functionality:**
 
-- Splits input text into russian words and non-russian words.
-- Normalizes input text into NFKD form for consistent parsing and output.
-- Preserves accent marks, punctuation, and white space from the input text so that it can be recreated if necessary.
-- Converts tokens into `Word` objects, identifying hyphenated words and multi-word expressions for later analysis.
+- Converts tokens into `Word` objects.
+- Preserves accent marks, punctuation, and white space in the tokenized result so that the original text.
+- Groups hyphenated words and multi-word expressions so they can be treated as a unit.
 
 ## Usage
 
@@ -17,7 +16,7 @@ Install via pip:
 $ pip install git+https://github.com/arthurian/pyrusbasic.git#egg=pyrusbasic
 ```
 
-Example:
+Example sentence parsed into words:
 
 ```python
 import pyrusbasic
@@ -29,7 +28,7 @@ print([str(w) for w in words])
 ['Все', ' ', 'счастливые', ' ', 'семьи', ' ', 'похожи', ' ', 'друг', ' ', 'на', ' ', 'друга', ', ', 'каждая', ' ', 'несчастливая', ' ', 'семья', ' ', 'несчастлива', ' ', 'по-своему', '.']
 ```
 
-Example with multi-word expressions:
+Example with _multi-word expressions_ (mwes):
 
 ```python
 import pyrusbasic
