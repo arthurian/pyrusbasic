@@ -241,26 +241,21 @@ class Parser(object):
         :return: True if MWE identified, False otherwise
         '''
         w = word.copy()
-        matched = False
+        key_pos = -1
         j = 0
         while j < len(tokenqueue):
             w.tokens.append(tokenqueue[j])
             expr = w.gettext(remove_accents=True, lowercase=not self._mwe_match_case)
-            if self._mwes.has_subtrie(expr):
-                j += 1
-                matched = True
-                continue
-            elif self._mwes.has_key(expr):
-                matched = True
+            if self._mwes.has_key(expr):
+                key_pos = j
+            if not self._mwes.has_subtrie(expr) and not self._mwes.has_key(expr):
                 break
-            else:
-                j -= 1
-                break
-        if matched:
-            while j >= 0:
-                word.tokens.append(tokenqueue.popleft())
-                j -= 1
-        return matched
+            j += 1
+        found_mwe = key_pos >= 0
+        while key_pos >= 0:
+            word.tokens.append(tokenqueue.popleft())
+            key_pos -= 1
+        return found_mwe
 
     def parse(self, text):
         '''

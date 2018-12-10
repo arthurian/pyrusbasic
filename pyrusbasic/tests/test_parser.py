@@ -98,8 +98,8 @@ class TestParser(unittest.TestCase):
         parser.add_mwes(mwes)
         tests = [{
             'input': 'Несмотря на серьзёную болезнь...',
-            'output': ['Несмотря на ', 'серьзёную', ' ', 'болезнь', '...'],
-            'description': 'MWE that IS a prefix of another will greedy match up to the space',
+            'output': ['Несмотря на', ' ', 'серьзёную', ' ', 'болезнь', '...'],
+            'description': 'MWE that IS a prefix of another',
         },{
             'input': 'возможна, несмотря на то, что фактов',
             'output': ['возможна', ', ', 'несмотря на то, что', ' ', 'фактов'],
