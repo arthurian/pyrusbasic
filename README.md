@@ -5,8 +5,8 @@ Python package that provides basic tokenization and parsing of Russian language 
 **Functionality:**
 
 - Converts tokens into `Word` objects.
-- Preserves accent marks, punctuation, and white space in the tokenized result so that the original text.
-- Groups hyphenated words and multi-word expressions so they can be treated as a unit.
+- Preserves accent marks, punctuation, and white space.
+- Groups hyphenated words and multi-word expressions.
 
 ## Usage
 
@@ -39,5 +39,5 @@ text = 'Несмотря на то, что еще не много времени
 words = parser.parse(text)
 print([str(w) for w in words])
 
-['Несмотря на то, что', ' ', 'еще не много', ' ', 'времени', ' ', 'прошло', ' ', 'с', ' ', 'тех', ' ', 'пор', ', ', 'как', ' ', 'князь', ' ', 'Андрей', ' ', 'оставил', ' ', 'Россию', ', ', 'он', ' ', 'много', ' ', 'изменился', ' ', 'за', ' ', 'это', ' ', 'время', '.']
+['Несмотря на то, что', ' ', 'еще не много', ' ', 'времени', ' ', 'прошло', ' ', 'с', ' ', 'тех', ' ', 'пор', ', ', 'как', ' ', 'князь', ' ', 'Андрей', ' ', 'оставил', ' ', 'Россию', ', ', 'он', ' ', 'много', ' ', 'изменился', ' ', 'за', ' ', 'это', ' ', 'время', '.']
 ```
