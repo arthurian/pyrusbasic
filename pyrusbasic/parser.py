@@ -144,12 +144,12 @@ class Parser(object):
         Keyword Args:
            preprocessor (object): Object that implements a preprocess() method.
            tokenizer (object): Object that implements a tokenize() method.
-           mwe_match_case (bool): Match case of MWEs (default False)
+           mwe_case_sensitive (bool): Match case of MWEs (default False)
         '''
         self._mwes = []
         self._preprocessor = kwargs.get('preprocessor', Preprocessor())
         self._tokenizer = kwargs.get('tokenizer', Tokenizer())
-        self._mwe_match_case = kwargs.get('mwe_match_case', False)
+        self._mwe_case_sensitive = kwargs.get('mwe_case_sensitive', False)
 
     def add_mwe(self, mwe):
         '''
@@ -157,7 +157,7 @@ class Parser(object):
 
         :param str mwe: a multi word expression
         '''
-        if not self._mwe_match_case:
+        if not self._mwe_case_sensitive:
             mwe = mwe.lower()
         bisect.insort(self._mwes, mwe)
 
@@ -206,8 +206,8 @@ class Parser(object):
             # Assume the word is russian if the first letter is russian based on the tokenization method
             if token[0] in RUS_ALPHABET_SET:
                 word.word_type = Word.TYPE_WORD
-                self.extract_hyphenated(tokenqueue, word)
-                self.extract_mwe(tokenqueue, word)
+                self.group_hyphenated_tokens(tokenqueue, word)
+                self.group_mwe_tokens(tokenqueue, word)
             elif RE_WHITESPACE_ONLY.match(token):
                 word.type = Word.TYPE_WHITESPACE
             elif RE_DIGITS_ONLY.match(token):
@@ -216,11 +216,11 @@ class Parser(object):
             words.append(word)
         return words
 
-    def extract_hyphenated(self, tokenqueue, word):
+    def group_hyphenated_tokens(self, tokenqueue, word):
         '''
-        Lookahead in the token queue to see if the word is hyphenated, and if so, augment the word.
+        Group hyphenated tokens together in the same word.
 
-        :param tokenqueue: a deque of tokens
+        :param tokenqueue: a queue of tokens
         :param word: Word object to be augmented
         :return: True if hyphenated word identified, False otherwise
         '''
@@ -232,36 +232,39 @@ class Parser(object):
                 word.tokens.append(tokenqueue.popleft())
         return found_hyphen
 
-    def extract_mwe(self, tokenqueue, word):
+    def group_mwe_tokens(self, tokenqueue, word):
         '''
-        Lookahead in the token queue to see if the word is part of MWE, and if so, augment the word.
+        Group tokens that form the longest multi-word expression in the same word.
 
-        :param tokenqueue: a deque of tokens
+        Note: assumes the list of MWEs has already been sorted so that bisect
+         can be used to search.
+
+        :param tokenqueue: a queue of tokens
         :param word: Word object to be augmented
         :return: True if MWE identified, False otherwise
         '''
         if len(self._mwes) == 0:
             return False
         w = word.copy()
-        last_key_pos = last_index = -1
-        index = 0
+        found_pos = found_index = -1
+        pos = index = 0
         while index < len(tokenqueue):
             w.tokens.append(tokenqueue[index])
-            expr = w.gettext(remove_accents=True, lowercase=not self._mwe_match_case)
-            pos = bisect.bisect_left(self._mwes, expr)
+            expr = w.gettext(remove_accents=True, lowercase=not self._mwe_case_sensitive)
+            pos = bisect.bisect_left(self._mwes, expr, pos)
             if pos >= len(self._mwes) or len(expr) > len(self._mwes[pos]):
                 break
             if self._mwes[pos] == expr:
-                last_key_pos = pos
-                last_index = index
+                found_pos = pos
+                found_index = index
             if self._mwes[pos].startswith(expr):
                 index += 1
             else:
                 break
-        while last_index >= 0:
+        while found_index >= 0:
             word.tokens.append(tokenqueue.popleft())
-            last_index -= 1
-        return last_key_pos >= 0
+            found_index -= 1
+        return found_pos >= 0
 
     def parse(self, text):
         '''
