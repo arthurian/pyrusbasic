@@ -89,7 +89,7 @@ class TestParser(unittest.TestCase):
             for i, word in enumerate(words):
                 self.assertEqual(word.gettext(), expected[i], test['description'])
 
-    def test_sub_mwes(self):
+    def test_prefixed_mwes(self):
         parser = pyrusbasic.Parser()
         mwes = [
             'несмотря на',

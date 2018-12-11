@@ -3,7 +3,7 @@ import string
 import re
 import unicodedata
 import collections
-import pygtrie
+import bisect
 
 from pyrusbasic.const import (
     RUS_ALPHABET_STR,
@@ -146,7 +146,7 @@ class Parser(object):
            tokenizer (object): Object that implements a tokenize() method.
            mwe_match_case (bool): Match case of MWEs (default False)
         '''
-        self._mwes = pygtrie.Trie()
+        self._mwes = []
         self._preprocessor = kwargs.get('preprocessor', Preprocessor())
         self._tokenizer = kwargs.get('tokenizer', Tokenizer())
         self._mwe_match_case = kwargs.get('mwe_match_case', False)
@@ -159,7 +159,7 @@ class Parser(object):
         '''
         if not self._mwe_match_case:
             mwe = mwe.lower()
-        self._mwes[mwe] = True
+        bisect.insort(self._mwes, mwe)
 
     def add_mwes(self, mwes):
         '''
@@ -240,22 +240,28 @@ class Parser(object):
         :param word: Word object to be augmented
         :return: True if MWE identified, False otherwise
         '''
+        if len(self._mwes) == 0:
+            return False
         w = word.copy()
-        key_pos = -1
-        j = 0
-        while j < len(tokenqueue):
-            w.tokens.append(tokenqueue[j])
+        last_key_pos = last_index = -1
+        index = 0
+        while index < len(tokenqueue):
+            w.tokens.append(tokenqueue[index])
             expr = w.gettext(remove_accents=True, lowercase=not self._mwe_match_case)
-            if self._mwes.has_key(expr):
-                key_pos = j
-            if not self._mwes.has_subtrie(expr) and not self._mwes.has_key(expr):
+            pos = bisect.bisect_left(self._mwes, expr)
+            if pos >= len(self._mwes) or len(expr) > len(self._mwes[pos]):
                 break
-            j += 1
-        found_mwe = key_pos >= 0
-        while key_pos >= 0:
+            if self._mwes[pos] == expr:
+                last_key_pos = pos
+                last_index = index
+            if self._mwes[pos].startswith(expr):
+                index += 1
+            else:
+                break
+        while last_index >= 0:
             word.tokens.append(tokenqueue.popleft())
-            key_pos -= 1
-        return found_mwe
+            last_index -= 1
+        return last_key_pos >= 0
 
     def parse(self, text):
         '''
