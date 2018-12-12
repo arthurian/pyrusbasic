@@ -285,6 +285,3 @@ class Parser(object):
         words = self.process_tokens(tokens)
         return words
 
-    def unique_words(self, text):
-        words = self.parse(text)
-        uniq = []
