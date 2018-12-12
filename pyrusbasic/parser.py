@@ -40,7 +40,7 @@ class Word(object):
             self.tokens = tokens
         self.word_type = word_type
 
-    def gettext(self, remove_accents=False, remove_punct=False, lowercase=False, stripspace=False, normalize_unicode=True):
+    def gettext(self, remove_accents=False, remove_punct=False, lowercase=False, stripspace=False):
         '''
         Returns the word as a string.
 
@@ -48,7 +48,6 @@ class Word(object):
         :param bool remove_punct: Remove punctuation
         :param bool lowercase: Lowercase the string
         :param bool stripspace: Strip leading or trailing whitespace
-        :param bool normalize_unicode: Normalize unicode characters in NFKC form, which yields the canonical composition
         :return: the word string
         '''
         text = ''.join(self.tokens)
@@ -60,9 +59,7 @@ class Word(object):
             text = text.lower()
         if stripspace:
             text = text.strip()
-        if normalize_unicode:
-            text = unicodedata.normalize('NFKC', text)
-        return text
+        return unicodedata.normalize('NFKC', text)
 
     def canonical(self):
         '''
@@ -74,7 +71,7 @@ class Word(object):
 
         :return: the canonical string representation of the word
         '''
-        return self.gettext(remove_accents=True, lowercase=True, stripspace=True, normalize_unicode=True)
+        return self.gettext(remove_accents=True, lowercase=True, stripspace=True)
 
     def numtokens(self):
         '''
@@ -97,8 +94,18 @@ class Word(object):
         '''
         return Word(tokens=self.tokens.copy(), word_type=self.word_type)
 
+    def __eq__(self, other):
+        return self.gettext() == other.gettext()
+
+    def __lt__(self, other):
+        return self.gettext() < other.gettext()
+
+    def __le__(self, other):
+        a, b = self.gettext(), other.gettext()
+        return a == b or a < b
+
     def __repr__(self):
-        return str(self.getdata())
+        return "Word(%s,%s)" % (self.tokens, self.word_type)
 
     def __str__(self):
         return self.gettext()
@@ -277,3 +284,7 @@ class Parser(object):
         tokens = self.tokenize(nfkd_text)
         words = self.process_tokens(tokens)
         return words
+
+    def unique_words(self, text):
+        words = self.parse(text)
+        uniq = []

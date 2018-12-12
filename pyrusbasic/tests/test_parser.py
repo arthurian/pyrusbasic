@@ -6,15 +6,19 @@ class TestWord(unittest.TestCase):
     def test_accents(self):
         tests = [
             ['све́те', 'свете'],
-            ['лягу́шка-кваку́шка', 'лягушка-квакушка'],
+            ['любо́вь', 'любовь'],
+            ['вещество́', 'вещество'],
+            ['мото́р', 'мотор'],
         ]
-        for (accented, unaccented) in tests:
+        for test in tests:
+            (accented, unaccented) = test
             word = pyrusbasic.Word(accented)
             self.assertEqual(accented, word.gettext())
             self.assertEqual(accented, str(word))
             self.assertEqual(unaccented, word.gettext(remove_accents=True))
             self.assertEqual(unaccented, word.canonical())
             self.assertEqual(1, word.numtokens())
+
 
 class TestTokenizer(unittest.TestCase):
     def test_tokenizer_unaccented(self):
@@ -30,6 +34,7 @@ class TestTokenizer(unittest.TestCase):
         expected_tokens = ['Жила́', '-', 'была́', ' ', 'на', ' ', 'све́те', ' ', 'лягу́шка', '-', 'кваку́шка', '.']
         actual_tokens = tokenizer.tokenize(text)
         self.assertEqual(expected_tokens, actual_tokens)
+
 
 class TestParser(unittest.TestCase):
     def test_parse_accented_and_hyphenated(self):
@@ -96,6 +101,7 @@ class TestParser(unittest.TestCase):
             'несмотря на то, что',
             'до того',
             'до того как',
+            'перед тем, как',
         ]
         parser.add_mwes(mwes)
         tests = [{
@@ -114,6 +120,10 @@ class TestParser(unittest.TestCase):
             'input': 'Им не до того.',
             'output': ['Им', ' ', 'не', ' ', 'до того', '.'],
             'description': 'MWE near the end of the phrase: до того',
+        },{
+            'input': 'Что ты делала перед тем, как уснула?',
+            'output': ['Что', ' ', 'ты', ' ', 'делала', ' ', 'перед тем, как', ' ', 'уснула', '?'],
+            'description': 'MWE in the middle: перед тем, как'
         }]
         for test in tests:
             expected = test['output']
@@ -133,13 +143,22 @@ class TestParser(unittest.TestCase):
         parser = pyrusbasic.Parser(mwe_case_sensitive=False)
         parser.add_mwe('Несмотря на то, что')
         parser.add_mwe('еще не много')
-        text = 'Несмотря на то, что еще не много времени прошло с тех пор, как князь Андрей оставил Россию, он много изменился за это время.'
+        text = 'Несмотря на то, что еще не много времени прошло с тех пор, как князь Андрей оставил Россию...'
         words = parser.parse(text)
         self.assertEqual('Несмотря на то, что', words[0].gettext())
         self.assertEqual(' ', words[1].gettext())
         self.assertEqual('еще не много', words[2].gettext())
         self.assertEqual(' ', words[3].gettext())
         self.assertEqual('времени', words[4].gettext())
+
+    def test_text_can_be_reconstructed(self):
+        parser = pyrusbasic.Parser(mwe_case_sensitive=False)
+        parser.add_mwe('потому, что')
+        text = 'А если же я и провела хорошо каникулы, так это потому, что занималась наукой и вела себя хорошо.'
+        words = parser.parse(text)
+        reconstructed_text = ''.join(map(str, words))
+        self.assertEqual(text, reconstructed_text)
+
 
 if __name__ == '__main__':
     unittest.main()
