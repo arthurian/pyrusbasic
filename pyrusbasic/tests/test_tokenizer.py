@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import unittest
-import pyrusbasic.const
+from pyrusbasic import Word, WordTokenizer
 
 class TestWord(unittest.TestCase):
     def test_accents(self):
@@ -12,7 +12,7 @@ class TestWord(unittest.TestCase):
         ]
         for test in tests:
             (accented, unaccented) = test
-            word = pyrusbasic.Word(accented)
+            word = Word(accented)
             self.assertEqual(accented, word.gettext())
             self.assertEqual(accented, str(word))
             self.assertEqual(unaccented, word.gettext(remove_accents=True))
@@ -20,28 +20,28 @@ class TestWord(unittest.TestCase):
 
 class TestTokenizer(unittest.TestCase):
     def test_unaccented(self):
-        tokenizer = pyrusbasic.WordTokenizer()
+        tokenizer = WordTokenizer()
         text = 'Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему.\n\n'
         expected_tokens = ['Все', ' ', 'счастливые', ' ', 'семьи', ' ', 'похожи', ' ', 'друг', ' ', 'на', ' ', 'друга', ', ', 'каждая', ' ', 'несчастливая', ' ', 'семья', ' ', 'несчастлива', ' ', 'по', '-', 'своему', '.\n\n']
         actual_tokens = tokenizer._tokenize(text)
         self.assertEqual(expected_tokens, actual_tokens)
 
     def test_accented(self):
-        tokenizer = pyrusbasic.WordTokenizer()
+        tokenizer = WordTokenizer()
         text = 'Жила́-была́ на све́те лягу́шка-кваку́шка.'
         expected_tokens = ['Жила́', '-', 'была́', ' ', 'на', ' ', 'све́те', ' ', 'лягу́шка', '-', 'кваку́шка', '.']
         actual_tokens = tokenizer._tokenize(text)
         self.assertEqual(expected_tokens, actual_tokens)
 
     def test_numeric(self):
-        tokenizer = pyrusbasic.WordTokenizer()
+        tokenizer = WordTokenizer()
         text = 'НАСА, высота 82,7 км'
         expected_tokens = ['НАСА', ', ', 'высота', ' ', '82', ',', '7', ' ', 'км']
         actual_tokens = tokenizer._tokenize(text)
         self.assertEqual(expected_tokens, actual_tokens)
 
     def test_accented_and_hyphenated(self):
-        tokenizer = pyrusbasic.WordTokenizer()
+        tokenizer = WordTokenizer()
         text = "све́те лягу́шка-кваку́шка.\n"
         wordlist = tokenizer.tokenize(text)
         words = wordlist.words
@@ -52,7 +52,7 @@ class TestTokenizer(unittest.TestCase):
         self.assertEqual( ".\n", words[3].gettext())
 
     def test_unaccented_and_hyphenated(self):
-        tokenizer = pyrusbasic.WordTokenizer()
+        tokenizer = WordTokenizer()
         hyphenated = [
             'всё-таки',
             'из-за',
@@ -69,7 +69,7 @@ class TestTokenizer(unittest.TestCase):
             self.assertEqual(3, len(words[0].tokens))
 
     def test_mwe_case_sensitive(self):
-        tokenizer = pyrusbasic.WordTokenizer(case_sensitive=True)
+        tokenizer = WordTokenizer(case_sensitive=True)
         mwe_with_initial_uppercase_letter = 'Несмотря на'
         tokenizer.add_mwe(mwe_with_initial_uppercase_letter)
         text = 'Несмотря на серьзёную болезнь...'
@@ -78,7 +78,7 @@ class TestTokenizer(unittest.TestCase):
         self.assertEqual(mwe_with_initial_uppercase_letter, words[0].gettext())
 
     def test_prefixed_mwes(self):
-        tokenizer = pyrusbasic.WordTokenizer(case_sensitive=False)
+        tokenizer = WordTokenizer(case_sensitive=False)
         mwes = [
             'потому же',
             'потому, что',
@@ -133,7 +133,7 @@ class TestTokenizer(unittest.TestCase):
                 self.assertEqual(expected[i], word.gettext(), test['description'])
 
     def test_add_mwe(self):
-        tokenizer = pyrusbasic.WordTokenizer(case_sensitive=False)
+        tokenizer = WordTokenizer(case_sensitive=False)
         tokenizer.add_mwe('Несмотря на то, что')
         tokenizer.add_mwe('еще не много')
         text = 'Несмотря на то, что еще не много времени прошло с тех пор, как князь Андрей оставил Россию...'
@@ -146,7 +146,7 @@ class TestTokenizer(unittest.TestCase):
         self.assertEqual('времени', words[4].gettext())
 
     def test_text_can_be_reconstructed(self):
-        tokenizer = pyrusbasic.WordTokenizer(case_sensitive=False)
+        tokenizer = WordTokenizer(case_sensitive=False)
         tokenizer.add_mwe('потому, что')
         text = 'А если же я и провела хорошо каникулы, так это потому, что занималась наукой и вела себя хорошо.'
         wordlist = tokenizer.tokenize(text)

@@ -188,9 +188,9 @@ class WordTokenizer(object):
         '''
         COMBINING_CHARS = COMBINING_ACCENT_CHAR + COMBINING_BREVE_CHAR + COMBINING_DIURESIS_CHAR
         pattern = "([0-9]+|[^0-9" + RUS_ALPHABET_STR + COMBINING_CHARS + "]+)"
-        initial_tokens = re.split(pattern, text)
-        final_tokens = [t for t in initial_tokens if t != '']
-        return final_tokens
+        tokens = re.split(pattern, text)
+        tokens = [t for t in tokens if t != '']
+        return tokens
 
     def _process(self, tokens):
         '''
@@ -238,8 +238,8 @@ class WordTokenizer(object):
         '''
         Group tokens that form the longest multi-word expression in the same word.
 
-        Note: assumes the list of MWEs has already been sorted so that bisect
-         can be used to search.
+        Note: assumes sorted list of MWEs for binary search.
+        Todo: a Trie data structure would be more efficient here.
 
         :param tokenqueue: a queue of tokens
         :param word: Word object to be augmented
