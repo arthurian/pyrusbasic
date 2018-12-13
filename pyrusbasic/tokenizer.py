@@ -5,14 +5,15 @@ import unicodedata
 import collections
 import bisect
 
-from pyrusbasic.const import (
+from .const import (
     RUS_ALPHABET_STR,
     RUS_ALPHABET_SET,
     COMBINING_ACCENT_CHAR,
     COMBINING_BREVE_CHAR,
     COMBINING_DIURESIS_CHAR,
     EN_DASH_CHAR,
-    HYPHEN_CHAR
+    HYPHEN_CHAR,
+    RUS_PUNCT
 )
 
 RE_DIGITS_ONLY = re.compile(r'^\d+$')
@@ -24,8 +25,9 @@ class Word(object):
     TYPE_WORD = 1
     TYPE_HYPHENATED_WORD = 2
     TYPE_MWE = 3
-    TYPE_WHITESPACE = 4
-    TYPE_NUMERIC = 5
+    TYPE_NUMERIC = 4
+    TYPE_WHITESPACE = 5
+    TYPE_PUNCT = 6
 
     def __init__(self, tokens=None, word_type:int = TYPE_UNDEFINED):
         '''
@@ -40,7 +42,7 @@ class Word(object):
             self.tokens = tokens
         self.word_type = word_type
 
-    def gettext(self, remove_accents=False, remove_punct=False, lowercase=False, stripspace=False):
+    def gettext(self, remove_accents=False, remove_punct=False):
         '''
         Returns the word as a string.
 
@@ -55,37 +57,20 @@ class Word(object):
             text = text.replace(COMBINING_ACCENT_CHAR, '')
         if remove_punct:
             text = text.translate(TRANSLATOR_PUNCT_REMOVE)
-        if lowercase:
-            text = text.lower()
-        if stripspace:
-            text = text.strip()
         return unicodedata.normalize('NFKC', text)
 
-    def canonical(self):
-        '''
-        Returns the canonical string representation of the word with the following characteristics:
+    def lower(self):
+        return self.gettext().lower()
 
-        - Accent marks removed
-        - Leading and trailing white space removed
-        - Normalized unicode in NFKC form
+    def upper(self):
+        return self.gettext().upper()
 
-        :return: the canonical string representation of the word
-        '''
-        return self.gettext(remove_accents=True, lowercase=True, stripspace=True)
-
-    def numtokens(self):
+    def count(self):
         '''
         Number of tokens in the word.
         :return: number of tokens
         '''
         return len(self.tokens)
-
-    def getdata(self):
-        '''
-        Returns a list representation of the word data, containing the word type followed by the raw tokens.
-        :return: list of word data
-        '''
-        return [self.word_type] + self.tokens
 
     def copy(self):
         '''
@@ -93,6 +78,9 @@ class Word(object):
         :return: a new Word instance
         '''
         return Word(tokens=self.tokens.copy(), word_type=self.word_type)
+
+    def is_russian(self):
+        return self.word_type in (self.TYPE_WORD, self.TYPE_HYPHENATED_WORD, self.TYPE_MWE)
 
     def __eq__(self, other):
         return self.gettext() == other.gettext()
@@ -110,8 +98,70 @@ class Word(object):
     def __str__(self):
         return self.gettext()
 
-class Preprocessor(object):
-    def preprocess(self, text):
+
+class WordList(object):
+    def __init__(self, words):
+        self.words = words
+
+    def unique(self, case_sensitive=False):
+        wordset = set()
+        for w in self.words:
+            if w.is_russian():
+                wordstr = str(w)
+                if not case_sensitive:
+                    wordstr = wordstr.lower()
+                wordset.add(wordstr)
+        return list(sorted(wordset))
+
+    def __repr__(self):
+        return "WordList(%s)" % (self.words)
+
+    def __str__(self):
+        return str(self.words)
+
+class WordTokenizer(object):
+    def __init__(self, **kwargs):
+        '''
+        :param kwargs: Keyword args
+
+        Keyword Args:
+           case_sensitive (bool): Match case of MWEs (default False)
+        '''
+        self._mwes = []
+        self._case_sensitive = kwargs.get('case_sensitive', False)
+
+    def add_mwe(self, mwe):
+        '''
+        Adds a multi-word expression to the parser.
+
+        :param str mwe: a multi word expression
+        '''
+        if not self._case_sensitive:
+            mwe = mwe.lower()
+        bisect.insort(self._mwes, mwe)
+
+    def add_mwes(self, mwes):
+        '''
+        Adds a list of multi-word expressions.
+
+        :param list mwe: a list of strings to treat as multi-word expressions
+        '''
+        for mwe in mwes:
+            self.add_mwe(mwe)
+
+    def tokenize(self, text):
+        '''
+        Parse the input text, returning a list of Word objects.
+
+        :param str text: input text to parse
+        :return: WordList object
+        '''
+        normalized_text = self._preprocess(text)
+        tokens = self._tokenize(normalized_text)
+        words = self._process(tokens)
+        return WordList(words)
+
+    def _preprocess(self, text):
         '''
         Preprocess the input text by normalizing hyphens and decomposing the unicode string is fully decomposed for
         easier parsing.
@@ -123,8 +173,7 @@ class Preprocessor(object):
         nfkd_form = unicodedata.normalize('NFKD', text)
         return nfkd_form
 
-class Tokenizer(object):
-    def tokenize(self, text):
+    def _tokenize(self, text):
         '''
         Returns a list of tokens (strings) that have been split into groups of russian characters (including accent
         marks), and groups of non-russian characters.
@@ -138,64 +187,12 @@ class Tokenizer(object):
         :return: a list of tokens or strings
         '''
         COMBINING_CHARS = COMBINING_ACCENT_CHAR + COMBINING_BREVE_CHAR + COMBINING_DIURESIS_CHAR
-        pattern = "([^" + RUS_ALPHABET_STR + COMBINING_CHARS + "]+)"
-        tokens = re.split(pattern, text)
-        tokens = [t for t in tokens if t != '']
-        return tokens
+        pattern = "([0-9]+|[^0-9" + RUS_ALPHABET_STR + COMBINING_CHARS + "]+)"
+        initial_tokens = re.split(pattern, text)
+        final_tokens = [t for t in initial_tokens if t != '']
+        return final_tokens
 
-class Parser(object):
-    def __init__(self, **kwargs):
-        '''
-        :param kwargs: Keyword args
-
-        Keyword Args:
-           preprocessor (object): Object that implements a preprocess() method.
-           tokenizer (object): Object that implements a tokenize() method.
-           mwe_case_sensitive (bool): Match case of MWEs (default False)
-        '''
-        self._mwes = []
-        self._preprocessor = kwargs.get('preprocessor', Preprocessor())
-        self._tokenizer = kwargs.get('tokenizer', Tokenizer())
-        self._mwe_case_sensitive = kwargs.get('mwe_case_sensitive', False)
-
-    def add_mwe(self, mwe):
-        '''
-        Adds a multi-word expression to the parser.
-
-        :param str mwe: a multi word expression
-        '''
-        if not self._mwe_case_sensitive:
-            mwe = mwe.lower()
-        bisect.insort(self._mwes, mwe)
-
-    def add_mwes(self, mwes):
-        '''
-        Adds a list of multi-word expressions.
-
-        :param list mwe: a list of strings to treat as multi-word expressions
-        '''
-        for mwe in mwes:
-            self.add_mwe(mwe)
-
-    def preprocess(self, text):
-        '''
-        Returns the preprocessed text.
-
-        :param str text: input text
-        :return: preprocessed text
-        '''
-        return self._preprocessor.preprocess(text)
-
-    def tokenize(self, text):
-        '''
-        Returns tokens from the text.
-
-        :param str text: input text
-        :return: list of tokens
-        '''
-        return self._tokenizer.tokenize(text)
-
-    def process_tokens(self, tokens):
+    def _process(self, tokens):
         '''
         Processes the tokens by converting them to word objects, classifying their type, and grouping
         hypheanted/multi-word expressions.
@@ -206,24 +203,22 @@ class Parser(object):
         tokenqueue = collections.deque(tokens)
         words = []
         while len(tokenqueue) > 0:
-            # Initialize word object with first token from the queue
             token = tokenqueue.popleft()
-            word = Word(tokens=token)
-
-            # Assume the word is russian if the first letter is russian based on the tokenization method
+            word = Word(token)
             if token[0] in RUS_ALPHABET_SET:
                 word.word_type = Word.TYPE_WORD
-                self.group_hyphenated_tokens(tokenqueue, word)
-                self.group_mwe_tokens(tokenqueue, word)
+                self._process_hyphenated(tokenqueue, word)
+                self._process_mwes(tokenqueue, word)
             elif RE_WHITESPACE_ONLY.match(token):
                 word.type = Word.TYPE_WHITESPACE
             elif RE_DIGITS_ONLY.match(token):
                 word.type = Word.TYPE_NUMERIC
-
+            elif all(p in token for p in RUS_PUNCT):
+                word.type = Word.TYPE_PUNCT
             words.append(word)
         return words
 
-    def group_hyphenated_tokens(self, tokenqueue, word):
+    def _process_hyphenated(self, tokenqueue, word):
         '''
         Group hyphenated tokens together in the same word.
 
@@ -239,7 +234,7 @@ class Parser(object):
                 word.tokens.append(tokenqueue.popleft())
         return found_hyphen
 
-    def group_mwe_tokens(self, tokenqueue, word):
+    def _process_mwes(self, tokenqueue, word):
         '''
         Group tokens that form the longest multi-word expression in the same word.
 
@@ -257,7 +252,9 @@ class Parser(object):
         pos = index = 0
         while index < len(tokenqueue):
             w.tokens.append(tokenqueue[index])
-            expr = w.gettext(remove_accents=True, lowercase=not self._mwe_case_sensitive)
+            expr = w.gettext(remove_accents=True)
+            if not self._case_sensitive:
+                expr = expr.lower()
             pos = bisect.bisect_left(self._mwes, expr, pos)
             if pos >= len(self._mwes) or len(expr) > len(self._mwes[pos]):
                 break
@@ -272,16 +269,3 @@ class Parser(object):
             word.tokens.append(tokenqueue.popleft())
             found_index -= 1
         return found_pos >= 0
-
-    def parse(self, text):
-        '''
-        Parse the input text, returning a list of Word objects.
-
-        :param str text: input text to parse
-        :return: list of Word objects
-        '''
-        nfkd_text = self.preprocess(text)
-        tokens = self.tokenize(nfkd_text)
-        words = self.process_tokens(tokens)
-        return words
-

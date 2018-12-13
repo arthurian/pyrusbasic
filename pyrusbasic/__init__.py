@@ -1,1 +1,2 @@
-from .parser import Word, Parser, Tokenizer, Preprocessor
+from .tokenizer import Word, WordList, WordTokenizer
+

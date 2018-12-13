@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+import string
 
-# Pairs of upper and lowercase cyrillic letters in the russian alphabet
+#------------------------------------------------
+# Alphabet
+
 RUS_ALPHABET_LIST = (
     '\u0410', '\u0430', # Аа
     '\u0411', '\u0431', # Бб
@@ -39,10 +42,15 @@ RUS_ALPHABET_LIST = (
 RUS_ALPHABET_SET = set(RUS_ALPHABET_LIST)
 RUS_ALPHABET_STR = ''.join(RUS_ALPHABET_LIST)
 
-# Combining diacritics
+#------------------------------------------------
+# Diacritics
+
 COMBINING_ACCENT_CHAR = '\u0301'   # Diacritic used to mark stress on russian words
 COMBINING_DIURESIS_CHAR = '\u0308' # Diacritic used with the seventh letter of the russian alphabet (ё)
 COMBINING_BREVE_CHAR = '\u0306'    # Diacritic used with the eleventh letter of the russian alphabet (й)
+
+#------------------------------------------------
+# Punctuation
 
 # Hyphens and dashes
 HYPHEN_CHAR = '\u002D'  # Punctuation used to join components of a word
@@ -55,7 +63,11 @@ QUOTE_ANGLE_RIGHT = '\u00BB'
 QUOTE_RAISED_LEFT = '\u201e'
 QUOTE_RAISED_RIGHT = '\u201c'
 
-# Some common multi-word expressions
+RUS_PUNCT = string.punctuation + QUOTE_ANGLE_LEFT + QUOTE_ANGLE_RIGHT + QUOTE_RAISED_LEFT + QUOTE_RAISED_RIGHT + EN_DASH_CHAR + EM_DASH_CHAR
+
+#------------------------------------------------
+# Multi-word expressions
+
 COMMON_MWES = (
     'потому, что',
     ', потому что',
